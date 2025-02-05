@@ -40,26 +40,7 @@ Key components of the architecture above:
 - **Embedding External Data**: External data retrieved by the Retriever is embedded using OpenAI embeddings. The metadata, consisting of topic-subtopic combinations, is embedded to enhance retrieval speed and accuracy, while the description is stored as information.
 - **Conversational Memory**: To improve conversation continuity, the system enables conversational memory, which is limited to the previous 5 conversations. This helps reduce the prompt size while maintaining context for smoother interactions.
 
-### Folder Structure
-
-AGENTIC-RAG-CHALLENGE/
-│
-├── Code/                       
-│   ├── Embeddings.py          
-│   ├── Example.py              
-│   ├── LangchainActions.py     
-│   └── main.py              
-│
-├── data/                      
-│   └── MenuAndIngredients.csv   
-│   └── Restaurants.csv   
-│ 
-├── Prompts and Few Shot Examples/ 
-│   ├── (Details on Prompts used)
-│
-└── Main.ipynb   
-└── README.md   
-└── requirements.txt                 
+### Files         
 
 - **`Embeddings.py`**: This is the main script for managing embeddings. It includes functions for generating, storing and retrieving embeddings. We embedd metadata in the format topic-subtopic for enhanced retrieval speed and accuracy.
 
