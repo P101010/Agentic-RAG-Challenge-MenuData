@@ -19,6 +19,9 @@ db_password = os.getenv('db_password')
 db_host = os.getenv('db_host')
 db_name = os.getenv('db_name')
 os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
+os.environ["LANGCHAIN_TRACING_V2"] = os.getenv("LANGCHAIN_TRACING_V2")
+os.environ["LANGCHAIN_PROJECT"] = "pr-silver-worth-79"
+os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
 
 # A helper method to execute llm actions
 def llm_response(template, invoke_chain):
@@ -86,7 +89,7 @@ def tierOne(user_query, history=[]):
 
     final_prompt = ChatPromptTemplate.from_messages(
     [
-        ("system", "You are a PostgreSQL expert. Given an input question, create a syntactically correct PostgreSQL query to run. Unless otherwise specificed.\n\nHere is the relevant table info: {table_info}\n\nBelow are a number of examples of questions and their corresponding SQL queries."),
+        ("system", "You are a PostgreSQL expert. Given an input question, create a syntactically correct PostgreSQL query to run. Unless otherwise specificed. Make sure to always compare table contents and values by converting them to lower case or using ILIKE to avoid failures.\n\nHere is the relevant table info: {table_info}\n\nBelow are a number of examples of questions and their corresponding SQL queries."),
         few_shot_prompt,
         MessagesPlaceholder(variable_name="history"),
         ("human", "{input}"),
@@ -94,7 +97,7 @@ def tierOne(user_query, history=[]):
     )
 
     answer_prompt = PromptTemplate.from_template(
-    """Given the following user question, corresponding SQL query, and SQL result, answer the user question.
+    """Given the following user question, corresponding SQL query, and SQL result, answer the user question in a conversational format.
 
     Chat History:{history}
     Question: {question}
@@ -147,7 +150,8 @@ def result_nl(context, user_query, history = []):
         template='''Using relevant context passed answer the user query. If history of chat availableuse it for relevant context. Note - After answering the query provide relevant source
         Relevant Context - {context}
         history - {history}
-        query - {user_query}'''
+        query - {user_query}
+        Note - Never tell about any error or if SQL query returns null'''
     )
 
     response = llm_response(template = prompt_template, invoke_chain = {"context": context, "history": history, "user_query": user_query})
@@ -181,7 +185,7 @@ def split_query(user_query, history=[]):
         What is the history of sushi, and which restaurants are known for it?  
         Which restaurants are known for sushi?, What is the history of sushi?
 
-        Dont include class names in split.
+        Dont include class names in split and make sure proper context is included in both questions.
 
         history - {history}
         query - {user_query}'''
@@ -208,7 +212,12 @@ def check_query(user_query, history=[]):
         Note -  Only return True that is one word for in context queries  
         Make sure you return Only funny message as a response if out of context no need to explain anything else
 
+        But if the query is thankfull or is trying to strike a conversation be appreciative and ask how you can help.
+
         history - {history}
+
+        Make sure you take history only for context and focus on query more
+
         query - {user_query}'''
     )
 
@@ -216,11 +225,18 @@ def check_query(user_query, history=[]):
 
     return response
 
-def create_history(messages):
+def create_history(messages, max_messages):
     history = ChatMessageHistory()
+
+    if max_messages is not None:
+        messages = messages[-max_messages:]
+
     for message in messages:
         if message["role"] == "user":
             history.add_user_message(message["content"])
         else:
             history.add_ai_message(message["content"])
     return history
+
+
+    

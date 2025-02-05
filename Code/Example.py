@@ -30,6 +30,10 @@ examples = [
     {
         "input": "Restaurants with the most vegetarian options.",
         "query": "SELECT r.restaurant_name, r.city, COUNT(m.item_id) AS vegetarian_item_count FROM restaurants r JOIN menu_items m ON r.id = m.restaurant_id WHERE m.categories ILIKE '%vegetarian%' GROUP BY r.restaurant_name, r.city ORDER BY vegetarian_item_count DESC LIMIT 5;"
+    },
+    {
+        "input": "Give me address of Bandit Dolores and Mission Bowling Club",
+        "query": "SELECT r.restaurant_name, r.address1 FROM restaurants r WHERE (r.restaurant_name) ILIKE ('Bandit Dolores') or (r.restaurant_name) ILIKE ('Mission Bowling Club');"
     }
 ]
 
