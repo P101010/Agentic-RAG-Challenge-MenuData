@@ -20,7 +20,7 @@ Build a conversational AI (bot) that can answer a variety of questions about res
 
 ### Approach
 
-![Image](./Flowchart.png)
+![Image](./Flowchart.jpeg)
 
 Key components of the architecture above:
 
