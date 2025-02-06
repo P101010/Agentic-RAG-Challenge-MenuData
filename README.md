@@ -81,9 +81,8 @@ To get started with the project, follow these steps:
 
 ### Future Scope
 
-1. Finetune Language models for text classification and information extraction
+1. Finetune Language models for text classification and information extraction.
 
-2. Increase scope of chatbot by collecting more data related to Restaurants 
+2. Increase scope of chatbot by collecting more data on Restaurants.
 
-3. 
 
