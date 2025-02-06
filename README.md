@@ -85,4 +85,5 @@ To get started with the project, follow these steps:
 
 2. Increase scope of chatbot by collecting more data on Restaurants.
 
+3. Leverage more API's to address more user queries.
 
