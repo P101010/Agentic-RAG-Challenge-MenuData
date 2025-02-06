@@ -77,14 +77,7 @@ To get started with the project, follow these steps:
 
 6. Set up Langsmith for tracking project and get the API key and project name
 
-7. Set up your .env file with the below variables:
-    db_user
-    db_password
-    db_host
-    db_name
-    OPENAI_API_KEY
-    LANGCHAIN_TRACING_V2
-    LANGCHAIN_API_KEY
+7. Set up your .env file with the below variables: db_user, db_password, db_host, db_name, OPENAI_API_KEY, LANGCHAIN_TRACING_V2, LANGCHAIN_API_KEY
 
 6. Run the streamlit app:
    ```bash
