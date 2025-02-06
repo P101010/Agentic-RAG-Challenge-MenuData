@@ -1,4 +1,5 @@
 import os
+import re
 from langchain.chat_models import ChatOpenAI
 from langchain import LLMChain, PromptTemplate
 from langchain_community.utilities.sql_database import SQLDatabase
@@ -20,10 +21,10 @@ db_host = os.getenv('db_host')
 db_name = os.getenv('db_name')
 os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 os.environ["LANGCHAIN_TRACING_V2"] = os.getenv("LANGCHAIN_TRACING_V2")
-os.environ["LANGCHAIN_PROJECT"] = "pr-silver-worth-79"
+os.environ["LANGCHAIN_PROJECT"] = os.getenv("LANGCHAIN_PROJECT")
 os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
 
-# A helper method to execute llm actions
+# A helper method to execute llm chains
 def llm_response(template, invoke_chain):
 
     llm = ChatOpenAI(model="gpt-4", temperature=0) 
@@ -39,7 +40,7 @@ def classify_query(user_query, history=[]):
         input_variables=["history", "user_query"],
         template='''I have a scenario where I want to classify query into a category.
 
-        Tier 1: Questions related to restaurants, finding food, or food trends.
+        Tier 1: Questions related to restaurants, finding food, or food trends but should not include news articles.
         Examples:
         Which restaurants in San Francisco offer dishes with Impossible Meat? (Label - Tier 1)
         Give me a summary of the latest trends around desserts. (Tier 1)
@@ -47,7 +48,7 @@ def classify_query(user_query, history=[]):
         Compare the average menu price of vegan restaurants in LA vs. Mexican restaurants. (Tier 1)
         Which food can I find with peas?
 
-        Tier 2: Questions about a dish or ingredients.
+        Tier 2: Questions about a dish or ingredients or asking refernece to news articles.
         Examples:
         Tell me about biryani. (Tier 2)
         What is the history of sushi? (Tier 2)
@@ -89,7 +90,7 @@ def tierOne(user_query, history=[]):
 
     final_prompt = ChatPromptTemplate.from_messages(
     [
-        ("system", "You are a PostgreSQL expert. Given an input question, create a syntactically correct PostgreSQL query to run. Unless otherwise specificed. Make sure to always compare table contents and values by converting them to lower case or using ILIKE to avoid failures.\n\nHere is the relevant table info: {table_info}\n\nBelow are a number of examples of questions and their corresponding SQL queries."),
+        ("system", "You are a PostgreSQL expert. Given an input question, create a syntactically correct PostgreSQL query to run. Unless otherwise specificed. Make sure to always compare table contents and values by converting them to lower case or using ILIKE to avoid failures.\n\nHere is the relevant table info: {table_info}\n\nBelow are a number of examples of questions and their corresponding SQL queries Refer to this while making decisons."),
         few_shot_prompt,
         MessagesPlaceholder(variable_name="history"),
         ("human", "{input}"),
@@ -97,7 +98,7 @@ def tierOne(user_query, history=[]):
     )
 
     answer_prompt = PromptTemplate.from_template(
-    """Given the following user question, corresponding SQL query, and SQL result, answer the user question in a conversational format.
+    """Given the following user question, corresponding SQL query, and SQL result, answer the user question in a conversational format, use points to be more clear dont overdo. Never include any information about tables and columns.
 
     Chat History:{history}
     Question: {question}
@@ -107,15 +108,18 @@ def tierOne(user_query, history=[]):
     )
 
     generate_query = create_sql_query_chain(llm, db,final_prompt) 
+
     execute_query = QuerySQLDataBaseTool(db=db)
 
     rephrase_answer = answer_prompt | llm | StrOutputParser()
 
     chain = (
-    RunnablePassthrough.assign(query=generate_query).assign(
-        result=itemgetter("query") | execute_query
+    RunnablePassthrough.assign(query=generate_query)
+    .assign(clean_query=lambda x: clean_sql_query(x['query']))
+    .assign(result=itemgetter("clean_query") | execute_query
     )
-    | rephrase_answer )
+    | rephrase_answer)
+
 
     return chain.invoke({'question':user_query, 'history':history})
 
@@ -147,11 +151,12 @@ def result_nl(context, user_query, history = []):
     
     prompt_template = PromptTemplate(
         input_variables=["context", "history", "user_query"],
-        template='''Using relevant context passed answer the user query. If history of chat availableuse it for relevant context. Note - After answering the query provide relevant source
+        template='''Using relevant context passed answer the user query. If history of chat available use it for relevant context. Note - Always include source link
         Relevant Context - {context}
         history - {history}
         query - {user_query}
-        Note - Never tell about any error or if SQL query returns null'''
+        Note - Never tell about any error or if SQL query returns null or tell user abou how to find data or anything just gracefully explain data is not avialable If data
+        is unavailable graciously say so'''
     )
 
     response = llm_response(template = prompt_template, invoke_chain = {"context": context, "history": history, "user_query": user_query})
@@ -201,13 +206,16 @@ def check_query(user_query, history=[]):
 
     prompt_template = PromptTemplate(
         input_variables=["history", "user_query"],
-        template='''My RAG application or chatbot is for answering questions related to restaurants, food, dishes. So basically a one stop solution to find your favourite food or 
+        template='''My RAG application or chatbot is for answering questions related to restaurants, food, dishes, history of food, how its made and many more things about food. So basically a one stop solution to find your favourite food or 
         to know more about it. 
 
         So you are the gatekeeper checking if the query given by the user is in context of what we are trying to solve or anything else.
 
         If query is in context just return True if out of context return a funny response stating we might be able to answer that in future. Make sure you refer the history for previous 
         queries and responses to decide on the context. If you observe the user asking the same out of context question let him know about it in a funny way.
+
+        If query is asking question about restaurants in any other place than the state of Claifornia and city of San Fransisco then also it is concidered out of context and
+        inform user we only operate in these locations right now. Note - Only mention this when user mentions about other state or city
 
         Note -  Only return True that is one word for in context queries  
         Make sure you return Only funny message as a response if out of context no need to explain anything else
@@ -216,7 +224,7 @@ def check_query(user_query, history=[]):
 
         history - {history}
 
-        Make sure you take history only for context and focus on query more
+        Make sure you take history only for context and focus on the query below more
 
         query - {user_query}'''
     )
@@ -239,4 +247,45 @@ def create_history(messages, max_messages):
     return history
 
 
-    
+
+def clean_sql_query(text: str) -> str:
+
+    # Step 1: Remove code block syntax and any SQL-related tags
+    # This handles variations like ```sql, ```SQL, ```SQLQuery, etc.
+    block_pattern = r"```(?:sql|SQL|SQLQuery|mysql|postgresql)?\s*(.*?)\s*```"
+    text = re.sub(block_pattern, r"\1", text, flags=re.DOTALL)
+
+    # Step 2: Handle "SQLQuery:" prefix and similar variations
+    # This will match patterns like "SQLQuery:", "SQL Query:", "MySQL:", etc.
+    prefix_pattern = r"^(?:SQL\s*Query|SQLQuery|MySQL|PostgreSQL|SQL)\s*:\s*"
+    text = re.sub(prefix_pattern, "", text, flags=re.IGNORECASE)
+
+    # Step 3: Extract the first SQL statement if there's random text after it
+    # Look for a complete SQL statement ending with semicolon
+    sql_statement_pattern = r"(SELECT.*?;)"
+    sql_match = re.search(sql_statement_pattern, text, flags=re.IGNORECASE | re.DOTALL)
+    if sql_match:
+        text = sql_match.group(1)
+
+    # Step 4: Remove backticks around identifiers
+    text = re.sub(r'`([^`]*)`', r'\1', text)
+
+    # Step 5: Normalize whitespace
+    # Replace multiple spaces with single space
+    text = re.sub(r'\s+', ' ', text)
+
+    # Step 6: Preserve newlines for main SQL keywords to maintain readability
+    keywords = ['SELECT', 'FROM', 'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY',
+               'LIMIT', 'JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN',
+               'OUTER JOIN', 'UNION', 'VALUES', 'INSERT', 'UPDATE', 'DELETE']
+
+    # Case-insensitive replacement for keywords
+    pattern = '|'.join(r'\b{}\b'.format(k) for k in keywords)
+    text = re.sub(f'({pattern})', r'\n\1', text, flags=re.IGNORECASE)
+
+    # Step 7: Final cleanup
+    # Remove leading/trailing whitespace and extra newlines
+    text = text.strip()
+    text = re.sub(r'\n\s*\n', '\n', text)
+
+    return text

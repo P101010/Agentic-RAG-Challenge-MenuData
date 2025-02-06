@@ -109,17 +109,6 @@ def extractData_loadData_performSemanticSearch(info, user_query, history=[]):
     # Initialize Chroma client
     chroma_client = chromadb.Client()
 
-    # # Directory where the Chroma DB will be persisted
-    # persist_directory = "./chroma_db"  # Replace with your desired directory
-
-    # # Initialize the Chroma client with persistence 
-    # chroma_client = chromadb.Client(
-    #     Settings(
-    #     persist_directory=persist_directory,  # Enable persistence
-    #     chroma_db_impl="duckdb+parquet",      # Use DuckDB with Parquet for storage
-    #     )
-    # )
-
     # Create a collection (similar to a table in a traditional DB)
     collection_name = 'ExternalInformation'
     try:
