@@ -1,5 +1,7 @@
 # Agentic-RAG-Challenge-MenuData
 
+![Image](./video.gif)
+
 ### Challenge Overview
 
 ## Objective
