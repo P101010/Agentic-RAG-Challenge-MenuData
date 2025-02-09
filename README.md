@@ -2,12 +2,12 @@
 
 ![Image](./video.gif)
 
-### Challenge Overview
+## Challenge Overview
 
-## Objective
+### Objective
 Build a conversational AI (bot) that can answer a variety of questions about restaurants, their menus, and their ingredients, leveraging both an internal proprietary dataset and external public datasets. The bot should demonstrate:
 
-## Features
+### Features
 
 - **Retrieval-Augmented Generation (RAG):**
   - Ability to fetch relevant context from a knowledge base (including the internal dataset + external sources) to enhance LLM responses.
@@ -20,29 +20,29 @@ Build a conversational AI (bot) that can answer a variety of questions about res
 - **External Data Integration:**
   - Seamless combination of proprietary Menudata.ai assets and supplemental data sources (e.g., news articles, Wikipedia entries).
 
-### Approach
+## Approach
 
 ![Image](./Flowchart.jpg)
 
 Key components of the architecture above:
 
-#### **Guardrails:**
+### **Guardrails:**
 - **Context Differentiation**: The system can differentiate between messages that are within the context of the conversation and those that are out of context. It notifies the user when an issue arises, ensuring clarity and relevance in interactions.
 - **Toxic Language Filtering**: The system uses the Guardrails.ai package to filter out toxic or inappropriate language, ensuring a safe and respectful user experience.
 
-#### **Retriever:**
+### **Retriever:**
 - **Database Querying**: Based on the user's query, if relevant information exists in the database, the system uses the Langchain framework combined with the LLM (Large Language Model) to generate the query, retrieve the data, and return relevant information to the Generator.
 - **External Information Retrieval**: If external information is required, the system leverages the Wikipedia API to gather data on specific topics. The retrieved information is then embedded and stored in the vector database for future use.
 
-#### **Generator:**
+### **Generator:**
 - **Response Generation**: The system uses OpenAI's GPT-4 to generate queries and responses. It utilizes the relevant context provided by the Retriever to ensure accurate and context-aware outputs.
 - **SQL Query Generation**: The Generator can also create SQL queries dynamically based on user requests. These queries are used to fetch structured data from relational databases, ensuring seamless integration with database systems for data retrieval.
 
-#### **Storage:**
+### **Storage:**
 - **Embedding External Data**: External data retrieved by the Retriever is embedded using OpenAI embeddings. The metadata, consisting of topic-subtopic combinations, is embedded to enhance retrieval speed and accuracy, while the description is stored as information.
 - **Conversational Memory**: To improve conversation continuity, the system enables conversational memory, which is limited to the previous 5 conversations. This helps reduce the prompt size while maintaining context for smoother interactions.
 
-### Files         
+## Files         
 
 - **`Embeddings.py`**: This is the main script for managing embeddings. It includes functions for generating, storing and retrieving embeddings. We embedd metadata in the format topic-subtopic for enhanced retrieval speed and accuracy.
 
@@ -59,7 +59,7 @@ Key components of the architecture above:
 - **`Main.ipynb`**: This is the main notebook for our Streamlit application.
 
 
-### Getting Started
+## Getting Started
 
 To get started with the project, follow these steps:
 
@@ -85,7 +85,7 @@ To get started with the project, follow these steps:
    ```bash
    streamlit run main.py
 
-### Future Scope
+## Future Scope
 
 1. Finetune Language models for text classification and information extraction.
 
